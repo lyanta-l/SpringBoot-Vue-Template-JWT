@@ -9,7 +9,7 @@
       src="https://images.unsplash.com/photo-1439405326854-014607f694d7?w=1920&q=80"/>
     </div>
     <div class="right-card">
-
+      <router-view/>
     </div>
   </div>
 </template>
