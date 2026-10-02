@@ -2,8 +2,10 @@ package com.example.config;
 
 import com.auth0.jwt.JWT;
 import com.example.entity.RestBean;
+import com.example.entity.dto.Account;
 import com.example.entity.vo.response.AuthorizeVO;
 import com.example.filter.JwtAuthorizeFilter;
+import com.example.service.AccountService;
 import com.example.utils.JwtUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.ServletException;
@@ -27,6 +29,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.function.Consumer;
 
 @Configuration
 public class SecurityConfiguration {
@@ -36,6 +40,9 @@ public class SecurityConfiguration {
 
     @Resource
     JwtAuthorizeFilter jwtAuthorizeFilter;
+
+    @Resource
+    AccountService service;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -50,6 +57,7 @@ public class SecurityConfiguration {
                         .successHandler(this::onAuthenticationSuccess)
                 )
                 .logout(conf -> conf
+                        .logoutUrl("/api/auth/logout")
                         .logoutSuccessHandler(this::onLogoutSuccess)
                 )
                 .exceptionHandling(conf -> conf
@@ -70,19 +78,27 @@ public class SecurityConfiguration {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         User user = (User) authentication.getPrincipal();
-        String token = utils.createJwt(user, 1, "小明");
-        AuthorizeVO vo = new AuthorizeVO();
-        vo.setExpire(JWT.decode(token).getExpiresAt());
-        vo.setRole("");
-        vo.setToken(token);
-        vo.setUsername("小明");
+        Account account = service.findAccountByNameOrEmail(user.getUsername());
+        String token = utils.createJwt(user, account.getId(), account.getUsername());
+        AuthorizeVO vo = account.asViewObject(AuthorizeVO.class, v -> {
+            v.setExpire(JWT.decode(token).getExpiresAt());
+            v.setToken(token);
+        });
         response.getWriter().write(RestBean.success(vo).asJsonString());
     }
 
     public void onLogoutSuccess(HttpServletRequest request,
                                 HttpServletResponse response,
                                 @Nullable Authentication authentication) throws IOException, ServletException {
-
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter writer = response.getWriter();
+        String authorization = request.getHeader("Authorization");
+        if(utils.invalidateJwt(authorization)) {
+            writer.write(RestBean.success().asJsonString());
+        } else {
+            writer.write(RestBean.failure(400, "退出登录失败").asJsonString());
+        }
     }
 
     public void onAuthenticationFailure(HttpServletRequest request,
