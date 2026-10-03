@@ -15,9 +15,9 @@ const defaultError = (err) => {
 
 function takeAccessToken() {
     const str = localStorage.getItem("access_token") || sessionStorage.getItem("access_token")
-    if(!str) return null;
+    if (!str) return null;
     const authObj = JSON.parse(str)
-    if(authObj.expire < new Date()) {
+    if (authObj.expire < new Date()) {
         deleteAccessToken()
         ElMessage.warning('登录状态已过期，请重新登录')
         return null
@@ -25,19 +25,26 @@ function takeAccessToken() {
     return authObj.token
 }
 
-function storeAccessToken(token,remember,expire) {
-    const authObjd = {token:token,expire:expire}
+function storeAccessToken(token, remember, expire) {
+    const authObjd = {token: token, expire: expire}
     const str = JSON.stringify(authObjd)
-    if(remember){
-        localStorage.setItem(authItemName,str)
-    }else {
-        sessionStorage.setItem(authItemName,str)
+    if (remember) {
+        localStorage.setItem(authItemName, str)
+    } else {
+        sessionStorage.setItem(authItemName, str)
     }
 }
 
 function deleteAccessToken() {
     localStorage.removeItem(authItemName)
     sessionStorage.removeItem(authItemName)
+}
+
+function accessToken() {
+    const token = takeAccessToken();
+    return token ? {
+        'Authorization': `Bearer ${takeAccessToken()}`
+    } : {}
 }
 
 function internalPost(url, data, header, success, failure, error = defaultError) {
@@ -60,17 +67,37 @@ function internalGet(url, header, success, failure, error = defaultError) {
     }).catch(err => error(err))
 }
 
-function login(username,password,remember,success,failure = defaultFailure) {
-    internalPost('/api/auth/login', {
-            username: username,
-            password: password,
-        },{
-        'content-type': 'application/x-www-form-urlencoded',
-        },(data) => {
-        storeAccessToken(data.token,remember,data.expire)
-        ElMessage.success(`欢迎${data.username}登录成功`)
-        success(data)
-    },failure)
+function get(url, success, failure = defaultFailure) {
+    internalGet(url, accessToken(), success, failure)
 }
 
-export {login}
+function post(url, data, success, failure = defaultFailure) {
+    internalPost(url, data, accessToken(), success, failure)
+}
+
+function login(username, password, remember, success, failure = defaultFailure) {
+    internalPost('/api/auth/login', {
+        username: username,
+        password: password,
+    }, {
+        'content-type': 'application/x-www-form-urlencoded',
+    }, (data) => {
+        storeAccessToken(data.token, remember, data.expire)
+        ElMessage.success(`欢迎${data.username}登录成功`)
+        success(data)
+    }, failure)
+}
+
+function logout(success, failure = defaultFailure) {
+    get('/api/auth/logout', () => {
+        deleteAccessToken()
+        ElMessage.success('退出登录成功，欢迎您再次使用')
+        success()
+    }, failure)
+}
+
+function unauthorize() {
+    return !takeAccessToken()
+}
+
+export {login, logout, get, post, unauthorize}
