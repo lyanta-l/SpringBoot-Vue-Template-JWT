@@ -1,4 +1,16 @@
 spring:
+  mail:
+    host: smtp.163.com
+    username: studyjava2026@163.com
+    password: EJqX834kzrmHJ3J3
+  rabbitmq:
+    addresses: localhost
+    username: admin
+    password: admin
+    virtual-host: /
+    listener:
+      simple:
+        default-requeue-rejected: false   # 处理失败的消息直接丢弃/进死信，不再无限重投
   security:
     jwt:
       key: abcdefghi
