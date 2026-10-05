@@ -87,6 +87,7 @@ function askCode() {
     ElMessage.warning('请输入正确的电子邮件！')
   }
 }
+const isEmailValid = computed(() => /^[\w.-]+@[\w.-]+\.\w+$/.test(form.email))
 
 function register() {
   formRef.value.validate((valid)=>{
@@ -101,7 +102,7 @@ function register() {
   })
 }
 
-const isEmailValid = computed(() => /^[\w.-]+@[\w.-]+\.\w+$/.test(form.email))
+
 </script>
 
 <template>
