@@ -9,7 +9,11 @@
       src="https://images.unsplash.com/photo-1439405326854-014607f694d7?w=1920&q=80"/>
     </div>
     <div class="right-card">
-      <router-view/>
+      <router-view v-slot="{ Component }">
+        <transition name="el-fade-in-linear" mode="out-in">
+          <component :is="Component"/>
+        </transition>
+      </router-view>
     </div>
   </div>
 </template>
